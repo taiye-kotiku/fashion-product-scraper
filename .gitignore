@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# Data (keep structure, ignore content)
+data/patterns/*.json
+!data/patterns/.gitkeep
+data/screenshots/*
+!data/screenshots/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Test coverage
+coverage/
+
+# Build
+dist/
+build/
+node_modules/
+.env
+data/screenshots/
+data/products/
+logs/
+*.log

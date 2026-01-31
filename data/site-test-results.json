@@ -1,0 +1,498 @@
+{
+  "timestamp": "2026-01-31T05:03:15.065Z",
+  "summary": {
+    "total": 16,
+    "working": 12,
+    "blocked": 0,
+    "errors": 0,
+    "empty": 0,
+    "noProducts": 4
+  },
+  "workingSites": [
+    {
+      "name": "Anthropologie",
+      "category": "Women",
+      "url": "https://www.anthropologie.com/tops-graphic-tees",
+      "products": 3
+    },
+    {
+      "name": "Abercrombie",
+      "category": "Boys",
+      "url": "https://www.abercrombie.com/shop/us/kids/boys-tops-graphic-tees-t-shirts-and-henleys",
+      "products": 2
+    },
+    {
+      "name": "River Island",
+      "category": "Women",
+      "url": "https://www.riverisland.com/search?keyword=graphic%20tee&f-division=women",
+      "products": 3
+    },
+    {
+      "name": "River Island",
+      "category": "Men",
+      "url": "https://www.riverisland.com/search?keyword=graphic%20tee&f-division=men",
+      "products": 3
+    },
+    {
+      "name": "River Island",
+      "category": "Boys",
+      "url": "https://www.riverisland.com/c/boys/tops",
+      "products": 8
+    },
+    {
+      "name": "River Island",
+      "category": "Girls",
+      "url": "https://www.riverisland.com/c/girls/tops",
+      "products": 7
+    },
+    {
+      "name": "Snipes",
+      "category": "Men",
+      "url": "https://www.snipesusa.com/mens-graphic-tees/",
+      "products": 4
+    },
+    {
+      "name": "Next",
+      "category": "Boys",
+      "url": "https://www.next.us/en/shop/boys/clothing/tops/t-shirts/f/pattern-graphic",
+      "products": 5
+    },
+    {
+      "name": "Next",
+      "category": "Girls",
+      "url": "https://www.next.us/en/shop/girls/clothing/tops/t-shirts",
+      "products": 5
+    },
+    {
+      "name": "Next",
+      "category": "Women",
+      "url": "https://www.next.us/en/shop/womens/clothing/tops",
+      "products": 5
+    },
+    {
+      "name": "Next",
+      "category": "Men",
+      "url": "https://www.next.us/en/shop/mens/clothing/tops/f/pattern-graphic",
+      "products": 5
+    },
+    {
+      "name": "Altard State",
+      "category": "Girls",
+      "url": "https://www.altardstate.com/as/clothing/tops/graphics/",
+      "products": 4
+    }
+  ],
+  "blockedSites": [],
+  "allResults": [
+    {
+      "name": "Anthropologie",
+      "category": "Women",
+      "status": "success",
+      "products": 3,
+      "data": [
+        {
+          "name": "Anthropologie Cat Mom Sweatshirt",
+          "price": "$80.00",
+          "imageDescription": "Woman wearing a gray sweatshirt with 'CAT MOM' text"
+        },
+        {
+          "name": "Embroidered Sol Angeles Heart Graphic Tee",
+          "price": "$48.00",
+          "imageDescription": "Woman wearing a white tee with a pink heart graphic"
+        },
+        {
+          "name": "Aerosmith Graphic Tee",
+          "price": "$48.00",
+          "imageDescription": "Woman wearing a dark graphic tee with band logo"
+        }
+      ],
+      "url": "https://www.anthropologie.com/tops-graphic-tees"
+    },
+    {
+      "name": "Abercrombie",
+      "category": "Women",
+      "status": "success",
+      "products": 0,
+      "data": [],
+      "url": "https://www.abercrombie.com/shop/us/womens-graphic-tees-tops"
+    },
+    {
+      "name": "Abercrombie",
+      "category": "Men",
+      "status": "success",
+      "products": 0,
+      "data": [],
+      "url": "https://www.abercrombie.com/shop/us/mens-graphic-tees-tops"
+    },
+    {
+      "name": "Abercrombie",
+      "category": "Boys",
+      "status": "success",
+      "products": 2,
+      "data": [
+        {
+          "name": "Pink Cardigan with Strawberries",
+          "price": "",
+          "imageDescription": "Girl wearing a pink cardigan with strawberry embroidery, paired with a floral top and jeans"
+        },
+        {
+          "name": "Red Hoodie with Beetle Graphic",
+          "price": "",
+          "imageDescription": "Red hoodie with 'PEOPLE LOVE BEETLES' text and a graphic of a classic car, paired with denim skirt and sneakers"
+        }
+      ],
+      "url": "https://www.abercrombie.com/shop/us/kids/boys-tops-graphic-tees-t-shirts-and-henleys"
+    },
+    {
+      "name": "Abercrombie",
+      "category": "Girls",
+      "status": "success",
+      "products": 0,
+      "data": [],
+      "url": "https://www.abercrombie.com/shop/us/kids/girls-tops-graphic-tees-t-shirts"
+    },
+    {
+      "name": "River Island",
+      "category": "Women",
+      "status": "success",
+      "products": 3,
+      "data": [
+        {
+          "name": "Red Short Sleeve Paris Graphic Print T-Shirt",
+          "price": "₦ 37,800",
+          "imageDescription": "Model wearing a red t-shirt with graphic designs"
+        },
+        {
+          "name": "Brown Short Sleeve Cowgirl Horseshoe T-Shirt",
+          "price": "₦ 30,800",
+          "imageDescription": "Model sitting and wearing a brown t-shirt with cowgirl horseshoe graphic"
+        },
+        {
+          "name": "Black Short Sleeve Metallic Bow T-Shirt",
+          "price": "₦ 26,000",
+          "imageDescription": "Model wearing a black t-shirt with metallic bow graphic"
+        }
+      ],
+      "url": "https://www.riverisland.com/search?keyword=graphic%20tee&f-division=women"
+    },
+    {
+      "name": "River Island",
+      "category": "Men",
+      "status": "success",
+      "products": 3,
+      "data": [
+        {
+          "name": "Black Japanese Print T-Shirt And Shorts Set",
+          "price": "₦34,300",
+          "imageDescription": "Man wearing black T-shirt and shorts with Japanese print"
+        },
+        {
+          "name": "White Premio Series Racing T-Shirt",
+          "price": "₦30,800",
+          "imageDescription": "Man in white T-shirt holding a jacket"
+        },
+        {
+          "name": "White Oversized Fit Dragon Graffiti T-Shirt",
+          "price": "₦30,800",
+          "imageDescription": "Man in white T-shirt with dragon graffiti on the back"
+        }
+      ],
+      "url": "https://www.riverisland.com/search?keyword=graphic%20tee&f-division=men"
+    },
+    {
+      "name": "River Island",
+      "category": "Boys",
+      "status": "success",
+      "products": 8,
+      "data": [
+        {
+          "name": "Sets & Outfits",
+          "price": "",
+          "imageDescription": "Child in beige outfit with white sneakers"
+        },
+        {
+          "name": "T-Shirts",
+          "price": "",
+          "imageDescription": "White t-shirt with colorful graphic"
+        },
+        {
+          "name": "Hoodies & Sweatshirts",
+          "price": "",
+          "imageDescription": "White hoodie with small graphics"
+        },
+        {
+          "name": "Polo Shirts",
+          "price": "",
+          "imageDescription": "Navy polo shirt with checkered collar"
+        },
+        {
+          "name": "Tops",
+          "price": "",
+          "imageDescription": "Brown top with colorful patches"
+        },
+        {
+          "name": "Product 1",
+          "price": "",
+          "imageDescription": "White t-shirt with a graphic of a dog"
+        },
+        {
+          "name": "Product 2",
+          "price": "",
+          "imageDescription": "White shirt with a number 10 and dragon graphics"
+        },
+        {
+          "name": "Product 3",
+          "price": "",
+          "imageDescription": "White t-shirt with bear and text 'AUTRE STUDIOS'"
+        }
+      ],
+      "url": "https://www.riverisland.com/c/boys/tops"
+    },
+    {
+      "name": "River Island",
+      "category": "Girls",
+      "status": "success",
+      "products": 7,
+      "data": [
+        {
+          "name": "T-Shirts",
+          "price": "",
+          "imageDescription": "White t-shirt with leopard print and pink bow graphic"
+        },
+        {
+          "name": "Hoodies & Sweatshirts",
+          "price": "",
+          "imageDescription": "Blue sweatshirt with script embroidery"
+        },
+        {
+          "name": "Jumpers & Cardigans",
+          "price": "",
+          "imageDescription": "Cream jumper with black horse graphic"
+        },
+        {
+          "name": "Long Sleeve Tops",
+          "price": "",
+          "imageDescription": "Pink long sleeve top with number 58 graphic"
+        },
+        {
+          "name": "Top Sets & Outfits",
+          "price": "",
+          "imageDescription": "Pink and white striped top and pants set"
+        },
+        {
+          "name": "Crop Tops",
+          "price": "",
+          "imageDescription": "Black crop top with 'Going Be Ready' text"
+        },
+        {
+          "name": "Vests & Camis",
+          "price": "",
+          "imageDescription": "Pink vest with red scalloped edges"
+        }
+      ],
+      "url": "https://www.riverisland.com/c/girls/tops"
+    },
+    {
+      "name": "Snipes",
+      "category": "Men",
+      "status": "success",
+      "products": 4,
+      "data": [
+        {
+          "name": "Lil Wayne Frame Tee",
+          "price": "$9.99",
+          "imageDescription": "Black tee with Lil Wayne portrait"
+        },
+        {
+          "name": "DMX Think Face Tee",
+          "price": "$25",
+          "imageDescription": "White tee with black and white DMX graphic"
+        },
+        {
+          "name": "Wu-Tang Temporary President Tee",
+          "price": "$9.99",
+          "imageDescription": "Black tee with red and white Wu-Tang graphic"
+        },
+        {
+          "name": "Limitless Grim Reaper Tee",
+          "price": "$20",
+          "imageDescription": "Black tee with colorful Grim Reaper graphic"
+        }
+      ],
+      "url": "https://www.snipesusa.com/mens-graphic-tees/"
+    },
+    {
+      "name": "Boohoo Man",
+      "category": "Men",
+      "status": "success",
+      "products": 0,
+      "data": [],
+      "url": "https://www.boohooman.com/us/mens/tops/graphic-tops"
+    },
+    {
+      "name": "Next",
+      "category": "Boys",
+      "status": "success",
+      "products": 5,
+      "data": [
+        {
+          "name": "Blue/Charcoal/Green/Brown/Grey Small Short Sleeve Graphic T-Shirts 5 Pack",
+          "price": "$35 - $42",
+          "imageDescription": "Five stacked colored t-shirts including brown, blue, grey, light green, and charcoal."
+        },
+        {
+          "name": "White/Blue/Green/Black/Purple Small Short Sleeve Graphic T-Shirts 5 Pack",
+          "price": "$35 - $42",
+          "imageDescription": "Five stacked t-shirts in white, blue, green, black, and purple."
+        },
+        {
+          "name": "White Slogan Short Sleeve Graphic T-Shirts 3 Pack",
+          "price": "$31 - $38",
+          "imageDescription": "Three stacked t-shirts in white and red with palm tree graphic."
+        },
+        {
+          "name": "White Mickey Mouse Short Sleeve T-Shirt (3mths-8yrs)",
+          "price": "$19 - $23",
+          "imageDescription": "Child wearing a white t-shirt with Disney Mickey Mouse graphic on the back."
+        },
+        {
+          "name": "Sage Green Toy Story Short Sleeve T-Shirt (3mths-8yrs)",
+          "price": "$19 - $23",
+          "imageDescription": "Child wearing a sage green t-shirt with Toy Story graphic."
+        }
+      ],
+      "url": "https://www.next.us/en/shop/boys/clothing/tops/t-shirts/f/pattern-graphic"
+    },
+    {
+      "name": "Next",
+      "category": "Girls",
+      "status": "success",
+      "products": 5,
+      "data": [
+        {
+          "name": "Rainbow Long Sleeve Tops 4 Pack (3mths-7yrs)",
+          "price": "$42 - $50",
+          "imageDescription": "Four long sleeve tops in rainbow stripes and heart patterns"
+        },
+        {
+          "name": "Rainbow T-Shirts 4 Pack (3mths-7yrs)",
+          "price": "$38 - $46",
+          "imageDescription": "Four colorful t-shirts with rainbow and wave patterns"
+        },
+        {
+          "name": "Fruit Long Sleeve Rib Tops 5 Pack (3mths-7yrs)",
+          "price": "$44 - $52",
+          "imageDescription": "Five ribbed long sleeve tops with fruit graphics"
+        },
+        {
+          "name": "Bright Oversized Graphic T-Shirts 4 Pack (3-16yrs)",
+          "price": "$44 - $56",
+          "imageDescription": "Four brightly colored oversized t-shirts with various graphics"
+        },
+        {
+          "name": "Red Hearts T-Shirts 3 Pack (3mths-7yrs)",
+          "price": "$29 - $37",
+          "imageDescription": "Three t-shirts with heart graphics, including a red striped one"
+        }
+      ],
+      "url": "https://www.next.us/en/shop/girls/clothing/tops/t-shirts"
+    },
+    {
+      "name": "Next",
+      "category": "Women",
+      "status": "success",
+      "products": 5,
+      "data": [
+        {
+          "name": "Love & Roses Black Graphic Pattern Long Sleeve Button Through T-Shirt",
+          "price": "$75",
+          "imageDescription": "Black graphic pattern long sleeve shirt with collar"
+        },
+        {
+          "name": "White Heavyweight Short Sleeve Crew Neck T-Shirt",
+          "price": "$27",
+          "imageDescription": "White short sleeve crew neck t-shirt"
+        },
+        {
+          "name": "Ecru/Taupe/Brown/Blue/Yellow Cap Sleeve T-Shirts 5 Pack",
+          "price": "$55",
+          "imageDescription": "Five pack of cap sleeve t-shirts in various colors"
+        },
+        {
+          "name": "Black/White Short Sleeve Heavyweight T-Shirts 2 Pack",
+          "price": "$51",
+          "imageDescription": "Two pack of short sleeve t-shirts in black and white"
+        },
+        {
+          "name": "Love & Roses Black Semi Sheer Jacquard Long Sleeve Blouse",
+          "price": "$83",
+          "imageDescription": "Black semi sheer jacquard blouse with long sleeves"
+        }
+      ],
+      "url": "https://www.next.us/en/shop/womens/clothing/tops"
+    },
+    {
+      "name": "Next",
+      "category": "Men",
+      "status": "success",
+      "products": 5,
+      "data": [
+        {
+          "name": "White Hiroshige Relaxed Fit Artist License T-Shirt",
+          "price": "$42",
+          "imageDescription": "White t-shirt with blue graphic design on back"
+        },
+        {
+          "name": "White/Grey/Rust Red Regular Fit Graphic Print T-Shirts 3 Pack",
+          "price": "$66",
+          "imageDescription": "Three-pack of t-shirts in white, grey, and rust red colors"
+        },
+        {
+          "name": "Black Hokusai Relaxed Fit Artist License T-Shirt",
+          "price": "$42",
+          "imageDescription": "Black t-shirt with intricate graphic design on back"
+        },
+        {
+          "name": "Green Relaxed Fit Guinness Licence T-Shirt",
+          "price": "$42",
+          "imageDescription": "Green t-shirt with 'Lovely day for a Guinness' text on back"
+        },
+        {
+          "name": "Grey Relaxed Fit Guinness Licence T-Shirt",
+          "price": "$42",
+          "imageDescription": "Grey t-shirt with 'Great moments for great Guinness' text on back"
+        }
+      ],
+      "url": "https://www.next.us/en/shop/mens/clothing/tops/f/pattern-graphic"
+    },
+    {
+      "name": "Altard State",
+      "category": "Girls",
+      "status": "success",
+      "products": 4,
+      "data": [
+        {
+          "name": "Ford Bronco Oversized Tee",
+          "price": "$39.00",
+          "imageDescription": "Light green oversized tee with Ford Bronco graphic on the back"
+        },
+        {
+          "name": "Make Heaven Crowded Baby Tee",
+          "price": "$48.00",
+          "imageDescription": "Blue baby tee with 'make heaven crowded' text"
+        },
+        {
+          "name": "Tiffany Cape Cod Baby Tee",
+          "price": "$44.00",
+          "imageDescription": "White baby tee with Cape Cod graphic and dark pants"
+        },
+        {
+          "name": "Outer Banks Baby Tee",
+          "price": "$44.00",
+          "imageDescription": "Blue baby tee with North Carolina Outer Banks print"
+        }
+      ],
+      "url": "https://www.altardstate.com/as/clothing/tops/graphics/"
+    }
+  ]
+}
