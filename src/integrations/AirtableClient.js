@@ -142,7 +142,7 @@ class AirtableClient {
   formatForAirtable(product) {
     const fields = {
       'Store': product.source || product.store || '',
-      'Category': product.category || 'Women',
+      'Category': product.category || 'Unspecified',
       'Style Name': product.name || '',
       'Product URL': product.productUrl || '',
       'Date Added': new Date().toISOString()

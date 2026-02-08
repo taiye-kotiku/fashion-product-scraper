@@ -17,12 +17,11 @@ describe('AirtableClient', () => {
 
     const formatted = airtableClient.formatForAirtable(product);
 
-    expect(formatted['Name']).toBe('Test Product');
-    expect(formatted['Price']).toBe(29.99);
-    expect(formatted['Price Display']).toBe('$29.99');
+    expect(formatted['Style Name']).toBe('Test Product');
+    expect(formatted['Category']).toBe('Women');
+    expect(formatted['Store']).toBe('Test Site');
+    expect(formatted['Product URL']).toBe('http://example.com/product');
     expect(formatted['Image']).toEqual([{ url: 'http://example.com/image.jpg' }]);
-    expect(formatted['Source']).toBe('Test Site');
-    expect(formatted['Is Active']).toBe(true);
   });
 
   test('should handle missing image', () => {
