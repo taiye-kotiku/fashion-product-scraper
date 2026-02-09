@@ -23,7 +23,7 @@ class DataNormalizer {
     return {
       name: name,
       source: product.source || context.site,
-      category: context.category || 'Women',
+      category: context.category || 'Unspecified',
       productUrl: product.productUrl || '',
       imageUrl: imageUrl,
       productId: this.generateProductId(product),

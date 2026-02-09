@@ -30,14 +30,14 @@ describe('HybridStrategy', () => {
     expect(confidence).toBeLessThanOrEqual(1);
   });
 
-  test('should find matching products', () => {
-    const product = { name: 'Vintage Band Graphic Tee' };
-    const pageData = [
-      { url: 'http://example.com/p1', text: 'vintage band graphic tee shirt', image: 'img1.jpg' },
-      { url: 'http://example.com/p2', text: 'plain white tee', image: 'img2.jpg' }
+  test('should find best matching products', () => {
+    const visionProduct = { name: 'Vintage Band Graphic Tee' };
+    const domProducts = [
+      { name: 'Vintage Band Graphic Tee Shirt', url: 'http://example.com/p1', imageUrl: 'img1.jpg' },
+      { name: 'Plain White Tee', url: 'http://example.com/p2', imageUrl: 'img2.jpg' }
     ];
 
-    const match = strategy.findMatch(product, pageData);
+    const match = strategy.findBestMatch(visionProduct, domProducts);
 
     expect(match).toBeDefined();
     expect(match.url).toBe('http://example.com/p1');
