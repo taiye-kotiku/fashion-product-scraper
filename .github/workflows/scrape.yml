@@ -1,19 +1,27 @@
-name: Fashion Scraper
+name: Fashion Tee Scraper
 
 on:
-  # Run on schedule (every day at 6 AM UTC)
   schedule:
-    - cron: '0 6 * * *'
-  
-  # Allow manual trigger
+    - cron: '0 11 * * 1'
   workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Run in test mode (no Airtable writes)'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: scraper-run
+  cancel-in-progress: false
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 30
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -25,40 +33,66 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Puppeteer dependencies
+      - name: Install Chromium system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libnss3 \
-            libatk1.0-0 \
             libatk-bridge2.0-0 \
-            libcups2 \
             libdrm2 \
             libxkbcommon0 \
-            libxcomposite1 \
-            libxdamage1 \
-            libxrandr2 \
             libgbm1 \
-            libasound2 \
-            libpangocairo-1.0-0 \
-            libgtk-3-0
+            libgtk-3-0 \
+            libasound2t64 \
+            libxshmfence1 \
+            libglu1-mesa \
+            fonts-liberation \
+            xdg-utils
+
+      - name: Restore pattern cache
+        uses: actions/cache@v4
+        with:
+          path: data/patterns/
+          key: patterns-${{ github.ref_name }}
+          restore-keys: patterns-
 
       - name: Run scraper
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
           AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
           SCRAPINGBEE_API_KEY: ${{ secrets.SCRAPINGBEE_API_KEY }}
-        run: node src/index.js
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          HEADLESS: 'true'
+          LOG_LEVEL: 'info'
+          NODE_ENV: 'production'
+          CI: 'true'
+          GITHUB_ACTIONS: 'true'
+        run: |
+          if [ "${{ github.event.inputs.test_mode }}" = "true" ]; then
+            echo "🧪 Running in TEST MODE"
+            node src/index.js --test
+          else
+            echo "🚀 Running production scrape"
+            node src/index.js
+          fi
 
-      - name: Upload results
+      - name: Save pattern cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data/patterns/
+          key: patterns-${{ github.ref_name }}-${{ github.run_id }}
+
+      - name: Upload debug artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: scrape-results-${{ github.run_number }}
+          name: scrape-results-${{ github.run_id }}
           path: |
-            data/products/
             data/screenshots/
+            data/last-run-stats.json
             logs/
-          retention-days: 7
+          retention-days: 14

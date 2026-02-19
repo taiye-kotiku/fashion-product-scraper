@@ -1,39 +1,35 @@
 # Dependencies
 node_modules/
 
-# Environment
+# Environment secrets
 .env
 .env.local
+.env.production
+
+# Runtime data (regenerated each run)
+data/screenshots/
+data/cache/
+data/*.html
+data/last-run-stats.json
+data/heartbeat.json
+data/site-test-results.json
+
+# Pattern backups and temp files
+data/patterns/*.backup
+data/patterns/*.tmp
 
 # Logs
 logs/
-*.log
 
-# Data (keep structure, ignore content)
-data/patterns/*.json
-!data/patterns/.gitkeep
-data/screenshots/*
-!data/screenshots/.gitkeep
-data/cache/*
-!data/cache/.gitkeep
+# Build artifacts
+.next/
+out/
+build/
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
 # IDE
 .vscode/
 .idea/
-
-# Test coverage
-coverage/
-
-# Build
-dist/
-build/
-node_modules/
-.env
-data/screenshots/
-data/products/
-logs/
-*.log

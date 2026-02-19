@@ -1,3 +1,4 @@
+// src/integrations/AirtableClient.js
 const Airtable = require('airtable');
 const config = require('../config');
 const logger = require('../utils/logger');
@@ -15,11 +16,40 @@ class AirtableClient {
       .base(config.airtable.baseId);
     this.tableName = config.airtable.tableName;
     this.dryRun = false;
-    this.rateLimitDelay = 200;
+    this.rateLimitDelay = 250;
+    this.maxRetries = 3;
   }
 
   getTable() {
     return this.base(this.tableName);
+  }
+
+  async executeWithRetry(operation, label = 'operation') {
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        const isRateLimit =
+          error.statusCode === 429 ||
+          error.message?.includes('RATE_LIMIT') ||
+          error.message?.includes('Too many requests');
+
+        if (isRateLimit && attempt < this.maxRetries) {
+          const backoff = Math.pow(2, attempt) * 1000;
+          logger.warn(`Airtable rate limited on ${label}, retrying in ${backoff}ms (attempt ${attempt}/${this.maxRetries})`);
+          await delay(backoff);
+          continue;
+        }
+
+        logger.error(`Airtable ${label} failed (attempt ${attempt}): ${error.message}`);
+        throw error;
+      }
+    }
+  }
+
+  escapeForFormula(value) {
+    if (!value) return '';
+    return String(value).replace(/'/g, "\\'");
   }
 
   async getAllRecords() {
@@ -28,29 +58,28 @@ class AirtableClient {
       return [];
     }
 
-    const table = this.getTable();
-    const records = [];
+    return this.executeWithRetry(async () => {
+      const table = this.getTable();
+      const records = [];
 
-    return new Promise((resolve, reject) => {
-      table.select({
-        view: 'Grid view',
-        pageSize: 100
-      }).eachPage(
-        (pageRecords, fetchNextPage) => {
-          records.push(...pageRecords);
-          fetchNextPage();
-        },
-        (error) => {
-          if (error) {
-            logger.error(`Error fetching records: ${error.message}`);
-            reject(error);
-          } else {
-            logger.info(`Fetched ${records.length} records`);
-            resolve(records);
+      return new Promise((resolve, reject) => {
+        table.select({ view: 'Grid view', pageSize: 100 }).eachPage(
+          (pageRecords, fetchNextPage) => {
+            records.push(...pageRecords);
+            fetchNextPage();
+          },
+          (error) => {
+            if (error) {
+              logger.error(`Error fetching records: ${error.message}`);
+              reject(error);
+            } else {
+              logger.info(`Fetched ${records.length} records from Airtable`);
+              resolve(records);
+            }
           }
-        }
-      );
-    });
+        );
+      });
+    }, 'getAllRecords');
   }
 
   async createRecords(products) {
@@ -58,32 +87,25 @@ class AirtableClient {
       logger.info(`[DRY RUN] Would create ${products.length} records`);
       return [];
     }
-
     if (products.length === 0) return [];
 
     const table = this.getTable();
     const results = [];
-
     const batches = chunkArray(products, 10);
 
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
-      const records = batch.map(product => ({
-        fields: this.formatForAirtable(product)
-      }));
+      const records = batch.map(product => ({ fields: this.formatForAirtable(product) }));
 
-      try {
-        const created = await table.create(records, { typecast: true });
-        results.push(...created);
-        logger.info(`Created batch ${i + 1}/${batches.length} (${created.length} records)`);
+      const created = await this.executeWithRetry(
+        () => table.create(records, { typecast: true }),
+        `createRecords batch ${i + 1}/${batches.length}`
+      );
 
-        if (i < batches.length - 1) {
-          await delay(this.rateLimitDelay);
-        }
-      } catch (error) {
-        logger.error(`Error creating records: ${error.message}`);
-        throw error;
-      }
+      results.push(...created);
+      logger.info(`Created batch ${i + 1}/${batches.length} (${created.length} records)`);
+
+      if (i < batches.length - 1) await delay(this.rateLimitDelay);
     }
 
     logger.info(`Created ${results.length} total records`);
@@ -95,50 +117,33 @@ class AirtableClient {
       logger.info(`[DRY RUN] Would update ${products.length} records`);
       return [];
     }
-
     if (products.length === 0) return [];
 
     const table = this.getTable();
     const results = [];
-
     const batches = chunkArray(products, 10);
 
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
-      const records = batch.map(product => ({
-        id: product.recordId,
-        fields: this.formatForAirtable(product)
-      }));
+      const records = batch
+        .filter(product => product.recordId)
+        .map(product => ({ id: product.recordId, fields: this.formatForAirtable(product) }));
 
-      try {
-        const updated = await table.update(records, { typecast: true });
-        results.push(...updated);
+      if (records.length === 0) continue;
 
-        if (i < batches.length - 1) {
-          await delay(this.rateLimitDelay);
-        }
-      } catch (error) {
-        logger.error(`Error updating records: ${error.message}`);
-        throw error;
-      }
+      const updated = await this.executeWithRetry(
+        () => table.update(records, { typecast: true }),
+        `updateRecords batch ${i + 1}/${batches.length}`
+      );
+
+      results.push(...updated);
+      if (i < batches.length - 1) await delay(this.rateLimitDelay);
     }
 
     logger.info(`Updated ${results.length} records`);
     return results;
   }
 
-  /**
-   * Format product for YOUR Airtable table structure:
-   * 
-   * Fields in your table:
-   * - Store (Single Select): Anthropologie, Abercrombie, River Island, etc.
-   * - Category (Single Select): Women, Men, Boys, Girls
-   * - Style Name (Single Line Text): Product name
-   * - Product URL (URL): Link to product
-   * - Image (Attachment): Product image
-   * - Date Added (DateTime): When scraped
-   * - Unique ID (Formula): Auto-generated
-   */
   formatForAirtable(product) {
     const fields = {
       'Store': product.source || product.store || '',
@@ -148,19 +153,11 @@ class AirtableClient {
       'Date Added': new Date().toISOString()
     };
 
-    // Handle image attachment
     if (product.imageUrl) {
       fields['Image'] = [{ url: product.imageUrl }];
     }
 
     return fields;
-  }
-
-  /**
-   * Generate unique ID matching your formula: Store-ProductURL
-   */
-  generateUniqueId(product) {
-    return `${product.source || ''}-${product.productUrl || ''}`;
   }
 
   async testConnection() {
@@ -180,19 +177,19 @@ class AirtableClient {
     }
   }
 
-  /**
-   * Check if product already exists by URL
-   */
   async findByUrl(productUrl) {
     if (this.dryRun) return null;
 
     try {
+      const escaped = this.escapeForFormula(productUrl);
       const table = this.getTable();
-      const records = await table.select({
-        filterByFormula: `{Product URL} = '${productUrl}'`,
-        maxRecords: 1
-      }).firstPage();
-
+      const records = await this.executeWithRetry(
+        () => table.select({
+          filterByFormula: `{Product URL} = '${escaped}'`,
+          maxRecords: 1
+        }).firstPage(),
+        'findByUrl'
+      );
       return records.length > 0 ? records[0] : null;
     } catch (error) {
       logger.warn(`Error finding by URL: ${error.message}`);

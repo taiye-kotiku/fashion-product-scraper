@@ -1,0 +1,67 @@
+{
+  "3bb9a59acff6": {
+    "site": "Abercrombie",
+    "category": "Boys",
+    "strategy": {
+      "name": "hybrid",
+      "selectors": null
+    },
+    "lastSuccess": "2026-01-25T11:42:45.789Z",
+    "successCount": 2,
+    "avgProductCount": 86.5,
+    "confidence": 0.7549999999999999,
+    "needsRelearning": false
+  },
+  "7dfe6ac8177f": {
+    "site": "River Island",
+    "category": "Girls Graphic Tees",
+    "strategy": {
+      "name": "direct-dom",
+      "selectors": null
+    },
+    "lastSuccess": "2026-02-19T23:06:27.537Z",
+    "successCount": 63,
+    "avgProductCount": 37.26984126984127,
+    "confidence": 0.9999999999128741,
+    "needsRelearning": false
+  },
+  "76d2358c445a": {
+    "site": "Snipes",
+    "category": "Men",
+    "strategy": {
+      "name": "hybrid",
+      "selectors": null
+    },
+    "lastSuccess": "2026-01-27T04:34:54.797Z",
+    "successCount": 2,
+    "avgProductCount": 32,
+    "confidence": 0.7549999999999999,
+    "needsRelearning": false
+  },
+  "d0cab90d8d20": {
+    "site": "Next",
+    "category": "Boys Graphic Tees",
+    "strategy": {
+      "name": "direct-dom",
+      "selectors": null
+    },
+    "lastSuccess": "2026-02-19T23:09:11.529Z",
+    "successCount": 37,
+    "avgProductCount": 86.54054054054055,
+    "confidence": 0.9999990718942038,
+    "needsRelearning": false
+  },
+  "19fe1b44494c": {
+    "site": "Boohoo Man",
+    "category": "Men Graphic Tees",
+    "strategy": {
+      "name": "hybrid",
+      "selectors": null
+    },
+    "lastSuccess": "2026-02-19T23:09:14.226Z",
+    "successCount": 14,
+    "avgProductCount": 27.285714285714285,
+    "confidence": 0.996608884635755,
+    "needsRelearning": false
+  }
+}

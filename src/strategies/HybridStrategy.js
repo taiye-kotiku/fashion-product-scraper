@@ -13,7 +13,7 @@ class HybridStrategy extends BaseStrategy {
     this.visionAnalyzer = new VisionAnalyzer();
     this.domAnalyzer = new DOMAnalyzer();
     this.llm = new LLMClient();
-    
+
     this.skipUrlPatterns = [
       'how-can-we-help',
       'product-recalls',
@@ -39,7 +39,7 @@ class HybridStrategy extends BaseStrategy {
       '/page/',
       '/register'
     ];
-    
+
     this.skipNames = [
       'products sizing',
       'product recalls',
@@ -56,9 +56,8 @@ class HybridStrategy extends BaseStrategy {
       'quick view'
     ];
 
-    // Image URL patterns for different sites
     this.imagePatterns = {
-      'riverisland.com': (productId) => 
+      'riverisland.com': (productId) =>
         `https://images.riverisland.com/image/upload/t_plp_portraitSmall/f_auto/q_auto/${productId}_main`,
       'boohooman.com': (sku) =>
         `https://media.boohooman.com/i/boohooman/${sku}_xl?fmt=auto`
@@ -68,6 +67,7 @@ class HybridStrategy extends BaseStrategy {
   async extract(page, context) {
     logger.info('Using hybrid strategy');
 
+    // Try DOM extraction first
     const domProducts = await this.extractAllProductsFromDOM(page);
     logger.info(`DOM found ${domProducts.length} product links`);
 
@@ -79,8 +79,9 @@ class HybridStrategy extends BaseStrategy {
       };
     }
 
+    // Fall back to vision analysis
     const visionResult = await this.visionAnalyzer.extract(page, context, { maxChunks: 3 });
-    
+
     if (visionResult.products.length > 0) {
       const enriched = await this.enrichWithDOM(page, visionResult.products);
       return {
@@ -101,25 +102,25 @@ class HybridStrategy extends BaseStrategy {
     const baseUrl = await page.url();
     const skipUrls = this.skipUrlPatterns;
     const skipNames = this.skipNames;
-    
+
+    let errorCount = 0;
+
     const products = await page.evaluate((skipUrls, skipNames) => {
       const results = [];
       const seenUrls = new Set();
+      let errors = 0;
 
-      // Determine site type
       const hostname = window.location.hostname;
       const isRiverIsland = hostname.includes('riverisland.com');
       const isBoohoo = hostname.includes('boohooman.com');
 
-      // Site-specific product selectors
       let productElements = [];
-      
+
       if (isRiverIsland) {
         productElements = document.querySelectorAll('a[href*="/p/"]');
       } else if (isBoohoo) {
         productElements = document.querySelectorAll('.product-tile');
       } else {
-        // Generic fallback
         productElements = document.querySelectorAll(`
           a[href*="/p/"],
           a[href*="/product/"],
@@ -137,28 +138,19 @@ class HybridStrategy extends BaseStrategy {
           let sku = '';
 
           if (isBoohoo) {
-            // Boohoo: element is the tile, find link inside
             const link = element.querySelector('a[href*=".html"]');
             if (!link) return;
             href = link.href;
-            
-            // Extract SKU from URL: /product-name/CMM21454.html -> CMM21454
+
             const skuMatch = href.match(/\/([A-Z]{2,4}\d{4,})\.html/i);
-            if (skuMatch) {
-              sku = skuMatch[1];
-            }
+            if (skuMatch) sku = skuMatch[1];
           } else if (isRiverIsland) {
-            // River Island: element is the link
             href = element.href;
             container = element;
-            
-            // Extract product ID
+
             const productIdMatch = href.match(/\/p\/[a-z0-9-]+-(\d{4,})/i);
-            if (productIdMatch) {
-              productId = productIdMatch[1];
-            }
-            
-            // Check if link is the card
+            if (productIdMatch) productId = productIdMatch[1];
+
             const linkIsCard = element.className?.includes('card');
             if (!linkIsCard) {
               for (let i = 0; i < 6; i++) {
@@ -168,51 +160,44 @@ class HybridStrategy extends BaseStrategy {
               }
             }
           } else {
-            // Generic
             href = element.href || element.querySelector('a')?.href;
             if (!href) return;
           }
 
           if (!href) return;
 
-          // Deduplicate by URL
           const cleanUrl = href.split('?')[0].toLowerCase();
           if (seenUrls.has(cleanUrl)) return;
 
-          // Skip non-product URLs
           const lowerHref = href.toLowerCase();
           for (const pattern of skipUrls) {
             if (lowerHref.includes(pattern)) return;
           }
 
-          // Validate URL looks like a product
-          const isProductUrl = 
+          const isProductUrl =
             href.includes('/p/') ||
-            href.match(/\/[A-Z]{2,4}\d{4,}\.html/i) ||  // Boohoo SKU
+            href.match(/\/[A-Z]{2,4}\d{4,}\.html/i) ||
             href.includes('/product/');
-          
+
           if (!isProductUrl && !isBoohoo) return;
 
-          // Get product name
           let name = '';
           let price = '';
-          
+
           const fullText = container.innerText?.trim() || '';
-          
+
           if (fullText) {
             const lines = fullText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            
+
             for (const line of lines) {
-              // Skip price lines
               if (line.match(/^[\$£€₦]\s*[\d,]+/) || line.match(/^[\d,]+\s*[\$£€₦]/)) {
                 if (!price) price = line;
                 continue;
               }
-              // Skip badges and buttons
               if (line.match(/^(PLUS|PETITE|TALL|MATERNITY|EXTENDED SIZES|\d+-\d+\s*(YEARS|YRS))$/i)) {
                 continue;
               }
-              // Skip action text
+
               const lowerLine = line.toLowerCase();
               let skip = false;
               for (const skipName of skipNames) {
@@ -222,18 +207,16 @@ class HybridStrategy extends BaseStrategy {
                 }
               }
               if (skip) continue;
-              
-              // Valid product name
+
               if (line.length >= 8 && line.length <= 200 && !name) {
                 name = line;
               }
             }
           }
-          
+
           // Fallback: parse from URL
           if (!name || name.length < 8) {
             if (isBoohoo) {
-              // /us/oversized-shrunken-washed-panther-graphic-t-shirt/CMM21454.html
               const urlMatch = href.match(/\/([a-z0-9-]+)\/[A-Z]{2,4}\d+\.html/i);
               if (urlMatch) {
                 name = urlMatch[1]
@@ -254,37 +237,31 @@ class HybridStrategy extends BaseStrategy {
 
           if (!name || name.length < 5) return;
 
-          // Get image
           let imageUrl = '';
           const imgs = container.querySelectorAll('img');
-          
+
           for (const img of imgs) {
-            // Check various attributes
-            let src = img.dataset?.src || 
-                      img.dataset?.lazySrc ||
-                      img.dataset?.original ||
-                      img.dataset?.srcset ||
-                      '';
-            
-            // Fallback to src if not a placeholder
+            let src = img.dataset?.src ||
+              img.dataset?.lazySrc ||
+              img.dataset?.original ||
+              img.dataset?.srcset ||
+              '';
+
             if (!src || src.length < 30) {
               src = img.src || '';
-              // Skip base64 placeholders
-              if (src.startsWith('data:')) {
-                src = '';
-              }
+              if (src.startsWith('data:')) src = '';
             }
-            
+
             if (!src || src.length < 30) continue;
             if (src.includes('swatch')) continue;
             if (src.includes('placeholder')) continue;
-            
+
             imageUrl = src;
             break;
           }
 
           seenUrls.add(cleanUrl);
-          
+
           results.push({
             name: name.trim(),
             productUrl: href.split('?')[0],
@@ -294,18 +271,27 @@ class HybridStrategy extends BaseStrategy {
             sku: sku,
             site: hostname
           });
-        } catch (e) {}
+        } catch (e) {
+          errors++;
+        }
       });
 
-      return results;
+      // Return error count alongside results for logging
+      return { results, errors };
     }, skipUrls, skipNames);
 
+    if (products.errors > 0) {
+      logger.warn(`DOM extraction: ${products.errors} element errors`);
+    }
+
+    const items = products.results || products;
+
     // Normalize and add fallback images
-    const cleaned = products
+    const cleaned = (Array.isArray(items) ? items : [])
       .filter(p => p.name && p.name.length >= 5 && p.productUrl)
       .map(p => {
         let imageUrl = this.normalizeImageUrl(p.imageUrl, baseUrl);
-        
+
         // Construct image from SKU/ID if missing
         if (!imageUrl || imageUrl.length < 30) {
           if (p.site?.includes('riverisland.com') && p.productId) {
@@ -314,7 +300,7 @@ class HybridStrategy extends BaseStrategy {
             imageUrl = this.imagePatterns['boohooman.com'](p.sku);
           }
         }
-        
+
         return {
           ...p,
           price: parsePrice(p.priceFormatted),

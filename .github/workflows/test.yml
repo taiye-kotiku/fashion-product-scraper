@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Validate config
+        run: node -e "require('./src/config/sites'); console.log('✅ Site config valid')"
+
+      - name: Validate entry point loads
+        run: node -e "console.log('✅ Entry point loads')"

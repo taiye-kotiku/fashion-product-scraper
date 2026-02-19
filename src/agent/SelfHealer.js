@@ -1,3 +1,4 @@
+// src/agent/SelfHealer.js
 const LLMClient = require('../llm/LLMClient');
 const DOMAnalyzer = require('./DOMAnalyzer');
 const { healingPrompt } = require('../llm/prompts/healingPrompts');
@@ -5,33 +6,37 @@ const logger = require('../utils/logger');
 const { parsePrice } = require('../utils/helpers');
 
 class SelfHealer {
-  constructor() {
-    this.llm = new LLMClient();
+  constructor(options = {}) {
+    this.llm = options.llm || new LLMClient();
     this.domAnalyzer = new DOMAnalyzer();
+    this.maxHtmlSize = 30000;
   }
 
   async heal(page, failedExtraction, context) {
-    logger.info('Starting self-healing');
+    logger.info('Starting self-healing cascade');
 
     const strategies = [
-      () => this.tryAlternativeSelectors(page),
-      () => this.trySemanticExtraction(page),
-      () => this.trySchemaOrgExtraction(page),
-      () => this.tryLLMExtraction(page, context)
+      { name: 'alternative-selectors', fn: () => this.tryAlternativeSelectors(page) },
+      { name: 'semantic-html', fn: () => this.trySemanticExtraction(page) },
+      { name: 'schema-org', fn: () => this.trySchemaOrgExtraction(page) },
+      { name: 'llm-extraction', fn: () => this.tryLLMExtraction(page, context) }
     ];
 
     for (const strategy of strategies) {
       try {
-        const result = await strategy();
+        logger.debug(`Trying healing strategy: ${strategy.name}`);
+        const result = await strategy.fn();
         if (result.success && result.products.length > 0) {
-          logger.info(`Healing succeeded: ${result.products.length} products`);
+          logger.info(`Healing succeeded with "${strategy.name}": ${result.products.length} products`);
           return result;
         }
+        logger.debug(`Strategy "${strategy.name}" returned 0 products`);
       } catch (error) {
-        logger.warn(`Healing strategy failed: ${error.message}`);
+        logger.warn(`Strategy "${strategy.name}" failed: ${error.message}`);
       }
     }
 
+    logger.warn('All healing strategies exhausted');
     return { success: false, products: [] };
   }
 
@@ -56,10 +61,7 @@ class SelfHealer {
     for (const pattern of patterns) {
       const products = await this.domAnalyzer.extractWithPatterns(page, pattern);
       const valid = products.filter(p => p.name && (p.imageUrl || p.productUrl));
-
-      if (valid.length > 0) {
-        return { success: true, products: valid };
-      }
+      if (valid.length > 0) return { success: true, products: valid };
     }
 
     return { success: false, products: [] };
@@ -78,7 +80,6 @@ class SelfHealer {
       });
       return items;
     });
-
     const valid = products.filter(p => p.name);
     return { success: valid.length > 0, products: valid };
   }
@@ -90,62 +91,85 @@ class SelfHealer {
         try {
           const data = JSON.parse(script.textContent);
 
-          if (data['@type'] === 'ItemList' && data.itemListElement) {
-            data.itemListElement.forEach(item => {
-              const p = item.item || item;
-              if (p['@type'] === 'Product') {
-                items.push({
-                  name: p.name,
-                  price: p.offers?.price,
-                  imageUrl: Array.isArray(p.image) ? p.image[0] : p.image,
-                  productUrl: p.url
-                });
-              }
-            });
-          }
+          const processProduct = (p) => {
+            if (p['@type'] === 'Product') {
+              items.push({
+                name: p.name,
+                price: p.offers?.price,
+                imageUrl: Array.isArray(p.image) ? p.image[0] : p.image,
+                productUrl: p.url
+              });
+            }
+          };
 
-          if (data['@type'] === 'Product') {
-            items.push({
-              name: data.name,
-              price: data.offers?.price,
-              imageUrl: Array.isArray(data.image) ? data.image[0] : data.image,
-              productUrl: data.url
-            });
+          if (data['@type'] === 'ItemList' && data.itemListElement) {
+            data.itemListElement.forEach(item => processProduct(item.item || item));
           }
+          if (data['@type'] === 'Product') processProduct(data);
+          if (data['@graph']) data['@graph'].forEach(processProduct);
         } catch {}
       });
       return items;
     });
-
     return { success: products.length > 0, products };
   }
 
   async tryLLMExtraction(page, context) {
-    const html = await page.evaluate(() => {
+    const pageData = await page.evaluate((maxSize) => {
       const area = document.querySelector('main, [class*="product"], #content') || document.body;
       const clone = area.cloneNode(true);
-      clone.querySelectorAll('script, style, iframe').forEach(el => el.remove());
-      return clone.innerHTML.slice(0, 50000);
-    });
+      clone.querySelectorAll('script, style, iframe, svg, noscript, header, footer, nav').forEach(el => el.remove());
 
-    const prompt = healingPrompt(html, context.category);
+      const html = clone.innerHTML;
+      if (html.length <= maxSize) return html;
+
+      const products = [];
+      clone.querySelectorAll('a[href]').forEach(a => {
+        const href = a.href || a.getAttribute('href') || '';
+        if (href.includes('/p/') || href.includes('/product/') || href.includes('.html')) {
+          const text = a.innerText?.trim().substring(0, 200) || '';
+          const img = a.querySelector('img');
+          const imgSrc = img?.src || img?.dataset?.src || '';
+          if (text.length > 5) products.push({ href, text, img: imgSrc });
+        }
+      });
+
+      if (products.length > 0) return JSON.stringify(products.slice(0, 50));
+      return html.slice(0, maxSize);
+    }, this.maxHtmlSize);
+
+    const prompt = healingPrompt(pageData, context.category);
 
     try {
-      const response = await this.llm.complete({ prompt, maxTokens: 3000, temperature: 0.2 });
-      const match = response.match(/\[[\s\S]*\]/);
+      const response = await this.llm.complete({ prompt, maxTokens: 3000, temperature: 0.2, timeout: 45000 });
+      const responseText = typeof response === 'string' ? response : response?.text || response?.content || '';
+      const match = responseText.match(/\[[\s\S]*\]/);
 
-      if (match) {
-        const products = JSON.parse(match[0]).map(p => ({
-          ...p,
-          price: parsePrice(p.price)
-        }));
-        return { success: products.length > 0, products };
-      }
+      if (!match) return { success: false, products: [] };
+
+      let parsed;
+      try { parsed = JSON.parse(match[0]); }
+      catch { logger.warn('LLM returned invalid JSON'); return { success: false, products: [] }; }
+
+      if (!Array.isArray(parsed)) return { success: false, products: [] };
+
+      const products = parsed
+        .filter(p => p && typeof p === 'object' && p.name && typeof p.name === 'string')
+        .map(p => ({
+          name: String(p.name).trim(),
+          productUrl: p.productUrl || p.url || '',
+          imageUrl: p.imageUrl || p.image || '',
+          price: parsePrice(p.price),
+          priceFormatted: p.price ? String(p.price) : ''
+        }))
+        .filter(p => p.name.length >= 5);
+
+      logger.info(`LLM extraction parsed ${products.length} valid products`);
+      return { success: products.length > 0, products };
     } catch (error) {
       logger.warn(`LLM extraction failed: ${error.message}`);
+      return { success: false, products: [] };
     }
-
-    return { success: false, products: [] };
   }
 }
 
