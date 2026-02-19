@@ -23,11 +23,19 @@ class DataNormalizer {
     }
 
     return {
+<<<<<<< HEAD
       name,
       source: product.source || context.site || '',
       category: context.category || 'Women',
       productUrl,
       imageUrl,
+=======
+      name: name,
+      source: product.source || context.site,
+      category: context.category || 'Unspecified',
+      productUrl: product.productUrl || '',
+      imageUrl: imageUrl,
+>>>>>>> ffd8e263480b2dfdbce54319bd3dfe8fab3b5a09
       productId: this.generateProductId(product),
       scrapedAt: product.scrapedAt || new Date().toISOString(),
       price: parsePrice(product.price),
