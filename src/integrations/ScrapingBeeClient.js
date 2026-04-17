@@ -71,12 +71,42 @@ class ScrapingBeeClient {
       boohoo:    { wait: 8000, waitBrowser: 'networkidle2', premiumProxy: true },
       snipes:    { wait: 6000, waitBrowser: 'networkidle0', premiumProxy: true },
       next:      { wait: 6000, waitBrowser: 'networkidle2', premiumProxy: true },
-      abercrombie: { wait: 6000, waitBrowser: 'networkidle2', premiumProxy: true },
+      abercrombie: { wait: 8000, waitBrowser: 'networkidle2', premiumProxy: true },
       anthropologie: { wait: 5000, waitBrowser: 'networkidle2', premiumProxy: true }
     };
 
     const config = siteConfig[siteKey] || { wait: 5000 };
-    const html = await this.getPage(url, config);
+
+    // Abercrombie: try a scroll scenario first so lazy images below the fold
+    // are triggered. If ScrapingBee rejects the scenario (plan / param issue),
+    // fall back silently to the plain config.
+    let html;
+    if (siteKey === 'abercrombie') {
+      try {
+        html = await this.getPage(url, {
+          waitBrowser: 'networkidle2',
+          premiumProxy: true,
+          params: {
+            // Longer waits give Abercrombie's async image fetches time to resolve
+            js_scenario: JSON.stringify({
+              instructions: [
+                { scroll_y: 2000 }, { wait: 1500 },
+                { scroll_y: 4000 }, { wait: 1500 },
+                { scroll_y: 6000 }, { wait: 1500 },
+                { scroll_y: 8000 }, { wait: 1500 }
+              ]
+            })
+          }
+        });
+        logger.info('Abercrombie: scroll scenario succeeded');
+      } catch (scenarioErr) {
+        logger.warn(`Abercrombie scroll scenario rejected (${scenarioErr.message.slice(0, 80)}), retrying without scroll`);
+        html = await this.getPage(url, config);
+      }
+    } else {
+      html = await this.getPage(url, config);
+    }
+
     const $ = cheerio.load(html);
     let products = [];
 
@@ -425,12 +455,55 @@ class ScrapingBeeClient {
         const normalizedName = name.toLowerCase().replace(/\s+/g, ' ').trim();
         if (seenNames.has(normalizedName)) return;
 
+        // Widen context: if no card matched, walk up to nearest product/card/tile/li
+        const $ctx = $card.length
+          ? $card
+          : $link.closest('[class*="product"], [class*="card"], [class*="tile"], li, article');
+        const $imgCtx = $ctx.length ? $ctx : $link.parent();
+
         let imageUrl = '';
-        const $ctx = $card.length ? $card : $link;
-        const $img = $ctx.find('img').first();
-        if ($img.length) imageUrl = $img.attr('src') || $img.attr('data-src') || '';
+
+        // 1. Check <picture><source srcset> first (Abercrombie uses these)
+        $imgCtx.find('picture source[srcset]').each((j, sourceEl) => {
+          if (imageUrl) return false;
+          const srcset = $(sourceEl).attr('srcset') || '';
+          const parts = srcset.split(',')
+            .map(p => p.trim().split(/\s+/)[0])
+            .filter(u => u && (u.startsWith('http') || u.startsWith('//')));
+          if (parts.length) imageUrl = parts[parts.length - 1];
+        });
+
+        // 2. Walk img tags with full lazy-load attribute coverage
+        if (!imageUrl) {
+          $imgCtx.find('img').each((j, imgEl) => {
+            if (imageUrl) return false;
+            const $img = $(imgEl);
+            const w = parseInt($img.attr('width')  || '0');
+            const h = parseInt($img.attr('height') || '0');
+            if ((w > 0 && w < 50) || (h > 0 && h < 50)) return;
+
+            const candidates = [
+              $img.attr('data-src'),
+              $img.attr('data-lazy-src'),
+              $img.attr('data-lazysrc'),
+              $img.attr('data-original'),
+              $img.attr('data-image'),
+              $img.attr('src')
+            ];
+
+            for (const c of candidates) {
+              if (c && c.length > 20 && !c.startsWith('data:') &&
+                  (c.startsWith('http') || c.startsWith('//') || c.startsWith('/')) &&
+                  !/placeholder|swatch|blank\.|1x1|spacer|pixel\./i.test(c)) {
+                imageUrl = c;
+                return false;
+              }
+            }
+          });
+        }
+
         if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
-        if (imageUrl.startsWith('data:') || imageUrl.length < 20) imageUrl = '';
+        if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) imageUrl = '';
 
         if (href.startsWith('/')) href = baseOrigin + href;
 
@@ -441,6 +514,55 @@ class ScrapingBeeClient {
     });
 
     if (products.length === 0) this.extractFromJsonLd($, products, seenUrls, seenNames, baseOrigin);
+
+    // ── Supplement missing images from Abercrombie's SSR/hydration script data ──
+    // Products below the fold may not have lazy images rendered in <img> tags;
+    // their image URLs live in embedded JSON blobs in <script> tags.
+    if (products.some(p => !p.imageUrl)) {
+      const imgMap = new Map(); // productId/slug → full image URL
+      const ANF_CDN = 'https://img.abercrombie.com/is/image/anf/';
+
+      $('script:not([src])').each((i, el) => {
+        const content = $(el).html() || '';
+        // Match full CDN URL -OR- bare image key (KIC_xxx_prod1 without base URL)
+        if (!content.includes('img.abercrombie.com') &&
+            !content.includes('_prod1') && !content.includes('_prod2')) return;
+
+        // Regex matches both: full URL and bare key patterns
+        const imgRe = /(?:https?:\/\/img\.abercrombie\.com\/is\/image\/anf\/)?(KIC_[\w-]+_prod\d)/gi;
+        let m;
+        while ((m = imgRe.exec(content)) !== null) {
+          const key = m[1];
+          const imgUrl = ANF_CDN + key + '.jpg';
+          const pos = m.index;
+          const ctx = content.substring(Math.max(0, pos - 500), pos + 300);
+
+          // Match product ID (6+ digit number) near this image key
+          const idMatch = ctx.match(/\/p\/[\w-]+-(\d{6,})/i) ||
+                          ctx.match(/["'](?:productId|itemId|id)["']\s*:\s*["']?(\d{6,})["']?/i);
+          if (idMatch && !imgMap.has(idMatch[1])) imgMap.set(idMatch[1], imgUrl);
+
+          // Also match by URL slug
+          const slugMatch = ctx.match(/\/p\/([\w-]+?)-\d{6,}/i);
+          if (slugMatch && !imgMap.has(slugMatch[1].toLowerCase())) {
+            imgMap.set(slugMatch[1].toLowerCase(), imgUrl);
+          }
+        }
+      });
+
+      if (imgMap.size > 0) {
+        products.forEach(p => {
+          if (p.imageUrl) return;
+          if (p.productId && imgMap.has(p.productId)) { p.imageUrl = imgMap.get(p.productId); return; }
+          if (p.productUrl) {
+            const sm = p.productUrl.match(/\/p\/([\w-]+?)-(\d{6,})/i);
+            if (sm) p.imageUrl = imgMap.get(sm[2]) || imgMap.get(sm[1].toLowerCase()) || '';
+          }
+        });
+        const filled = products.filter(p => p.imageUrl).length;
+        logger.debug(`Abercrombie script image map: ${imgMap.size} images found, ${filled}/${products.length} products now have images`);
+      }
+    }
 
     if (products.length === 0) {
       try {
