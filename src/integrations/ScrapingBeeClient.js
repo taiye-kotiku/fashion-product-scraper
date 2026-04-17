@@ -76,7 +76,35 @@ class ScrapingBeeClient {
     };
 
     const config = siteConfig[siteKey] || { wait: 5000 };
-    const html = await this.getPage(url, config);
+
+    // Abercrombie: try a scroll scenario first so lazy images below the fold
+    // are triggered. If ScrapingBee rejects the scenario (plan / param issue),
+    // fall back silently to the plain config.
+    let html;
+    if (siteKey === 'abercrombie') {
+      try {
+        html = await this.getPage(url, {
+          waitBrowser: 'networkidle2',
+          premiumProxy: true,
+          params: {
+            js_scenario: JSON.stringify({
+              instructions: [
+                { scroll_y: 3000 }, { wait: 700 },
+                { scroll_y: 6000 }, { wait: 700 },
+                { scroll_y: 9000 }, { wait: 700 }
+              ]
+            })
+          }
+        });
+        logger.info('Abercrombie: scroll scenario succeeded');
+      } catch (scenarioErr) {
+        logger.warn(`Abercrombie scroll scenario rejected (${scenarioErr.message.slice(0, 80)}), retrying without scroll`);
+        html = await this.getPage(url, config);
+      }
+    } else {
+      html = await this.getPage(url, config);
+    }
+
     const $ = cheerio.load(html);
     let products = [];
 
