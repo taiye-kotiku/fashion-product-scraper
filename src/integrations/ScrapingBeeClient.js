@@ -71,27 +71,7 @@ class ScrapingBeeClient {
       boohoo:    { wait: 8000, waitBrowser: 'networkidle2', premiumProxy: true },
       snipes:    { wait: 6000, waitBrowser: 'networkidle0', premiumProxy: true },
       next:      { wait: 6000, waitBrowser: 'networkidle2', premiumProxy: true },
-      abercrombie: {
-        waitBrowser: 'networkidle2',
-        premiumProxy: true,
-        params: {
-          wait: 2000,
-          // Scroll progressively so lazy-loaded images below the fold are triggered
-          js_scenario: JSON.stringify({
-            instructions: [
-              { wait: 2000 },
-              { scroll_y: 3000 },
-              { wait: 600 },
-              { scroll_y: 6000 },
-              { wait: 600 },
-              { scroll_y: 9000 },
-              { wait: 600 },
-              { scroll_to_bottom: true },
-              { wait: 1200 }
-            ]
-          })
-        }
-      },
+      abercrombie: { wait: 8000, waitBrowser: 'networkidle2', premiumProxy: true },
       anthropologie: { wait: 5000, waitBrowser: 'networkidle2', premiumProxy: true }
     };
 
