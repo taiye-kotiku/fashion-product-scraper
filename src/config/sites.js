@@ -18,12 +18,12 @@ const sitesModule = {
         },
         {
           name: 'Boys Graphic Tees',
-          url: 'https://www.riverisland.com/c/boys/tops',
+          url: 'https://www.riverisland.com/search?keyword=graphic%20tee&f-division=boys',
           category: 'Boys'
         },
         {
           name: 'Girls Graphic Tees',
-          url: 'https://www.riverisland.com/c/girls/tops',
+          url: 'https://www.riverisland.com/search?keyword=graphic%20tee&f-division=girls',
           category: 'Girls'
         }
       ]
@@ -59,7 +59,7 @@ const sitesModule = {
         },
         {
           name: 'Women Graphic Tees',
-          url: 'https://www.next.us/en/shop/womens/clothing/tops',
+          url: 'https://www.next.us/en/shop/womens/clothing/tops/t-shirts/f/pattern-graphic',
           category: 'Women'
         },
         {
@@ -94,7 +94,7 @@ const sitesModule = {
         },
         {
           name: 'Girls Graphic Tees',
-          url: 'https://www.abercrombie.com/shop/us/kids/girls-tops',
+          url: 'https://www.abercrombie.com/shop/us/kids/girls-tops-graphic-tees-t-shirts-and-henleys',
           category: 'Girls'
         }
       ]

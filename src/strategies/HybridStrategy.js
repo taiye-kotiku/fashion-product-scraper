@@ -241,11 +241,24 @@ class HybridStrategy extends BaseStrategy {
           const imgs = container.querySelectorAll('img');
 
           for (const img of imgs) {
-            let src = img.dataset?.src ||
-              img.dataset?.lazySrc ||
-              img.dataset?.original ||
-              img.dataset?.srcset ||
-              '';
+            // Skip tiny icon/layout images
+            const w = img.naturalWidth  || parseInt(img.getAttribute('width')  || '0');
+            const h = img.naturalHeight || parseInt(img.getAttribute('height') || '0');
+            if ((w > 0 && w < 50) || (h > 0 && h < 50)) continue;
+
+            // Check all lazy-load data-* attributes first
+            let src = img.dataset?.src || img.dataset?.lazySrc || img.dataset?.original || '';
+
+            // data-srcset / native srcset need to be parsed — they are NOT plain URLs
+            if (!src || src.length < 30) {
+              const srcsetVal = (img.dataset?.srcset) || img.getAttribute('srcset') || '';
+              if (srcsetVal) {
+                const parts = srcsetVal.split(',')
+                  .map(s => s.trim().split(/\s+/)[0])
+                  .filter(u => u && (u.startsWith('http') || u.startsWith('//')));
+                if (parts.length) src = parts[parts.length - 1]; // prefer largest descriptor
+              }
+            }
 
             if (!src || src.length < 30) {
               src = img.src || '';
@@ -253,10 +266,9 @@ class HybridStrategy extends BaseStrategy {
             }
 
             if (!src || src.length < 30) continue;
-            if (src.includes('swatch')) continue;
-            if (src.includes('placeholder')) continue;
+            if (/swatch|placeholder|blank\.|1x1|spacer|pixel\./i.test(src)) continue;
 
-            imageUrl = src;
+            imageUrl = src.startsWith('//') ? 'https:' + src : src;
             break;
           }
 

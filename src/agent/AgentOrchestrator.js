@@ -199,6 +199,51 @@ class AgentOrchestrator {
     const rawProducts = await page.evaluate(() => {
       const results = [];
       const seenUrls = new Set();
+
+      // ---------------------------------------------------------------------------
+      // Shared image extractor: checks all lazy-load data-* attrs and native srcset
+      // ---------------------------------------------------------------------------
+      function getBestImageUrl(container) {
+        const SKIP = /placeholder|swatch|blank\.|spacer|pixel\.|1x1|transparent|loading|spinner|no-image|coming-soon/i;
+
+        function parseSrcset(s) {
+          if (!s) return '';
+          const parts = s.split(',')
+            .map(p => p.trim().split(/\s+/)[0])
+            .filter(u => u && (u.startsWith('http') || u.startsWith('//')));
+          return parts.length ? parts[parts.length - 1] : '';
+        }
+
+        const imgs = container.querySelectorAll('img');
+        for (const img of imgs) {
+          // Skip tiny icon/layout images
+          const w = img.naturalWidth  || parseInt(img.getAttribute('width')  || '0');
+          const h = img.naturalHeight || parseInt(img.getAttribute('height') || '0');
+          if ((w > 0 && w < 50) || (h > 0 && h < 50)) continue;
+
+          const candidates = [
+            img.getAttribute('data-src'),
+            img.getAttribute('data-lazy-src'),
+            img.getAttribute('data-lazysrc'),
+            img.getAttribute('data-original'),
+            img.getAttribute('data-image'),
+            img.getAttribute('data-zoom-image'),
+            img.getAttribute('data-full-src'),
+            parseSrcset(img.getAttribute('data-srcset')),
+            parseSrcset(img.getAttribute('srcset')),
+            img.src
+          ];
+
+          for (const c of candidates) {
+            if (c && c.length > 20 && !c.startsWith('data:') && !SKIP.test(c)) {
+              return c.startsWith('//') ? 'https:' + c : c;
+            }
+          }
+        }
+        return '';
+      }
+      // ---------------------------------------------------------------------------
+
       const hostname = window.location.hostname;
       const isRiverIsland = hostname.includes('riverisland.com');
       const isBoohoo = hostname.includes('boohooman.com');
@@ -226,8 +271,9 @@ class AgentOrchestrator {
             if (seenUrls.has(cleanUrl)) return;
             if (href.includes('/page/') || href.includes('/customer-service') || href.includes('/help')) return;
 
-            const isProductUrl = href.match(/\/[A-Z]{2,4}\d{4,}\.html/i) ||
-              href.includes('/us/mens/') || href.includes('/us/womens/');
+            // Only SKU-patterned URLs are real product pages (e.g. /BMM12345.html)
+            // Broad path includes like '/us/mens/' also match category pages — excluded
+            const isProductUrl = href.match(/\/[A-Z]{2,4}\d{4,}\.html/i);
             if (!isProductUrl) return;
 
             const skuMatch = href.match(/\/([A-Z]{2,4}\d{4,})\.html/i);
@@ -264,27 +310,16 @@ class AgentOrchestrator {
             if (!name || name.length < 5) return;
 
             let imageUrl = '';
+            // 1. Prefer explicit hidden-input URL (most reliable on Boohoo)
             const hiddenInput = container.querySelector(
               '.js-primary-image-default-url, input[class*="primary-image"], input[name*="image"]'
             );
             if (hiddenInput) imageUrl = hiddenInput.value || '';
 
-            if (!imageUrl) {
-              const imgs = container.querySelectorAll('img');
-              for (const img of imgs) {
-                const src = img.dataset?.src || img.dataset?.lazySrc || img.src || '';
-                if (src.startsWith('data:')) continue;
-                if (src.includes('mediahub.boohooman.com') || src.includes('boohoo')) {
-                  imageUrl = src;
-                  break;
-                }
-                if (src.length > 30 && !src.includes('placeholder') && !src.includes('pixel')) {
-                  imageUrl = src;
-                  break;
-                }
-              }
-            }
+            // 2. Walk all img tags with full lazy-load attribute coverage
+            if (!imageUrl) imageUrl = getBestImageUrl(container);
 
+            // 3. Construct from SKU as last resort
             if (!imageUrl && sku) {
               imageUrl = `https://media.boohooman.com/i/boohooman/${sku.toLowerCase()}_xl?fmt=auto`;
             }
@@ -325,10 +360,12 @@ class AgentOrchestrator {
                   continue;
                 }
                 if (line.match(/^(PLUS|PETITE|TALL|MATERNITY|\d+-\d+\s*YEARS)/i)) continue;
-                if (line.match(/^(new|sale|trending|limited)$/i)) continue;
-                if (line.match(/^(wishlist|add to bag|quick buy)/i)) continue;
+                // Skip single-word/short marketing labels (exact or prefix)
+                if (line.match(/^(new|sale|trending|limited|exclusive)$/i)) continue;
+                if (line.match(/^(new in|new arrival|new arrivals|just landed|just arrived|back in stock|coming soon|low stock)/i)) continue;
+                if (line.match(/^(wishlist|add to bag|quick buy|quick view|add to wishlist)/i)) continue;
                 if (line.match(/^\d+ colou?rs?$/i)) continue;
-                if (line.match(/^(black|white|blue|red|green|pink|grey|gray|navy|cream)$/i)) continue;
+                if (line.match(/^(black|white|blue|red|green|pink|grey|gray|navy|cream|beige|yellow|orange|purple|brown)(\s*\/\s*(black|white|blue|red|green|pink|grey|gray|navy|cream))?$/i)) continue;
 
                 if (line.length >= 8 && line.length <= 150 && !name) {
                   name = line;
@@ -347,15 +384,11 @@ class AgentOrchestrator {
 
             if (!name || name.length < 5) return;
 
-            let imageUrl = '';
-            const imgs = link.querySelectorAll('img');
-            for (const img of imgs) {
-              const src = img.dataset?.src || img.src || '';
-              if (src.startsWith('data:')) continue;
-              if (src.length > 30) { imageUrl = src; break; }
-            }
+            // Use shared extractor (checks data-src, data-lazy-src, srcset, etc.)
+            let imageUrl = getBestImageUrl(link);
 
-            if (!imageUrl) {
+            // Construct from Cloudinary CDN pattern if no image found in DOM
+            if (!imageUrl && productId) {
               imageUrl = `https://images.riverisland.com/image/upload/t_plp_portraitSmall/f_auto/q_auto/${productId}_main`;
             }
 
@@ -392,12 +425,15 @@ class AgentOrchestrator {
             }
             if (!name || name.length < 5) return;
 
-            let imageUrl = '';
-            for (const img of card.querySelectorAll('img')) {
-              const src = img.src || '';
-              if (src.includes('/ph.jpg') || src.includes('placeholder') || src.includes('21x21') || src.includes('Swatch')) continue;
-              if (src.includes('xcdn.next.co.uk') && src.length > 50) { imageUrl = src; break; }
+            // getBestImageUrl handles lazy-load attrs + srcset; Next uses xcdn CDN
+            let imageUrl = getBestImageUrl(card);
+
+            // Validate it looks like a real Next product image; reject tiny/placeholder CDN paths
+            if (imageUrl && (imageUrl.includes('/ph.jpg') || imageUrl.includes('21x21') || imageUrl.includes('Swatch'))) {
+              imageUrl = '';
             }
+
+            // Construct from item code when DOM image is missing/unusable
             if (!imageUrl && itemCode) {
               imageUrl = `https://xcdn.next.co.uk/Common/Items/Default/Default/ItemImages/3_4Ratio/SearchINT/Lge/${itemCode}.jpg`;
             }
@@ -443,15 +479,7 @@ class AgentOrchestrator {
 
             if (name.length < 3) return;
 
-            let imageUrl = '';
-            const imgs = container.querySelectorAll('img');
-            for (const img of imgs) {
-              const src = img.src || img.dataset?.src || '';
-              if (src.startsWith('data:') || src.length < 30) continue;
-              if (src.includes('placeholder')) continue;
-              imageUrl = src;
-              break;
-            }
+            let imageUrl = getBestImageUrl(container);
 
             let price = '';
             const priceEl = container.querySelector('[class*="price"]');
@@ -493,9 +521,7 @@ class AgentOrchestrator {
             }
             if (!name || name.length < 5) return;
 
-            let imageUrl = '';
-            const img = container.querySelector('img');
-            if (img) { imageUrl = img.dataset?.src || img.src || ''; if (imageUrl.startsWith('data:')) imageUrl = ''; }
+            let imageUrl = getBestImageUrl(container);
 
             seenUrls.add(cleanUrl);
             results.push({ name, productUrl: href.split('?')[0], imageUrl, priceFormatted: price });
