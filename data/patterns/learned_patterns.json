@@ -14,15 +14,15 @@
   },
   "7dfe6ac8177f": {
     "site": "River Island",
-    "category": "Girls Graphic Tees",
+    "category": "Women",
     "strategy": {
       "name": "direct-dom",
       "selectors": null
     },
-    "lastSuccess": "2026-02-19T23:06:27.537Z",
-    "successCount": 63,
-    "avgProductCount": 37.26984126984127,
-    "confidence": 0.9999999999128741,
+    "lastSuccess": "2026-04-17T12:21:50.224Z",
+    "successCount": 65,
+    "avgProductCount": 37.353846153846156,
+    "confidence": 0.9999999999573084,
     "needsRelearning": false
   },
   "76d2358c445a": {
@@ -53,15 +53,15 @@
   },
   "19fe1b44494c": {
     "site": "Boohoo Man",
-    "category": "Men Graphic Tees",
+    "category": "Men",
     "strategy": {
       "name": "hybrid",
       "selectors": null
     },
-    "lastSuccess": "2026-02-19T23:09:14.226Z",
-    "successCount": 14,
-    "avgProductCount": 27.285714285714285,
-    "confidence": 0.996608884635755,
+    "lastSuccess": "2026-04-17T12:16:22.526Z",
+    "successCount": 15,
+    "avgProductCount": 26,
+    "confidence": 0.9976262192450285,
     "needsRelearning": false
   }
 }
