@@ -214,6 +214,23 @@ class AgentOrchestrator {
           return parts.length ? parts[parts.length - 1] : '';
         }
 
+        // Validate the candidate is an actual URL, not a partial path or identifier
+        function isUsableUrl(u) {
+          if (!u || u.length < 10) return false;
+          if (u.startsWith('data:')) return false;
+          if (SKIP.test(u)) return false;
+          // Must look like a real URL — absolute or protocol-relative or root-relative
+          return u.startsWith('http') || u.startsWith('//') || u.startsWith('/');
+        }
+
+        // 1. Check <picture><source srcset> first — Abercrombie & many modern sites use these
+        const sources = container.querySelectorAll('picture source[srcset]');
+        for (const source of sources) {
+          const url = parseSrcset(source.getAttribute('srcset'));
+          if (isUsableUrl(url)) return url.startsWith('//') ? 'https:' + url : url;
+        }
+
+        // 2. Walk <img> tags with full lazy-load attribute coverage
         const imgs = container.querySelectorAll('img');
         for (const img of imgs) {
           // Skip tiny icon/layout images
@@ -235,9 +252,7 @@ class AgentOrchestrator {
           ];
 
           for (const c of candidates) {
-            if (c && c.length > 20 && !c.startsWith('data:') && !SKIP.test(c)) {
-              return c.startsWith('//') ? 'https:' + c : c;
-            }
+            if (isUsableUrl(c)) return c.startsWith('//') ? 'https:' + c : c;
           }
         }
         return '';

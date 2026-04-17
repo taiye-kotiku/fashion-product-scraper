@@ -240,36 +240,50 @@ class HybridStrategy extends BaseStrategy {
           let imageUrl = '';
           const imgs = container.querySelectorAll('img');
 
-          for (const img of imgs) {
-            // Skip tiny icon/layout images
-            const w = img.naturalWidth  || parseInt(img.getAttribute('width')  || '0');
-            const h = img.naturalHeight || parseInt(img.getAttribute('height') || '0');
-            if ((w > 0 && w < 50) || (h > 0 && h < 50)) continue;
+          const SKIP_IMG = /placeholder|swatch|blank\.|spacer|pixel\.|1x1|transparent|loading|spinner|no-image/i;
 
-            // Check all lazy-load data-* attributes first
-            let src = img.dataset?.src || img.dataset?.lazySrc || img.dataset?.original || '';
+          function parseSrcsetHybrid(s) {
+            if (!s) return '';
+            const parts = s.split(',')
+              .map(p => p.trim().split(/\s+/)[0])
+              .filter(u => u && (u.startsWith('http') || u.startsWith('//')));
+            return parts.length ? parts[parts.length - 1] : '';
+          }
 
-            // data-srcset / native srcset need to be parsed — they are NOT plain URLs
-            if (!src || src.length < 30) {
-              const srcsetVal = (img.dataset?.srcset) || img.getAttribute('srcset') || '';
-              if (srcsetVal) {
-                const parts = srcsetVal.split(',')
-                  .map(s => s.trim().split(/\s+/)[0])
-                  .filter(u => u && (u.startsWith('http') || u.startsWith('//')));
-                if (parts.length) src = parts[parts.length - 1]; // prefer largest descriptor
+          function isUsableUrlHybrid(u) {
+            if (!u || u.length < 10) return false;
+            if (u.startsWith('data:')) return false;
+            if (SKIP_IMG.test(u)) return false;
+            return u.startsWith('http') || u.startsWith('//') || u.startsWith('/');
+          }
+
+          // Check <picture><source srcset> first
+          const pictureSources = container.querySelectorAll('picture source[srcset]');
+          for (const source of pictureSources) {
+            const url = parseSrcsetHybrid(source.getAttribute('srcset'));
+            if (isUsableUrlHybrid(url)) { imageUrl = url.startsWith('//') ? 'https:' + url : url; break; }
+          }
+
+          if (!imageUrl) {
+            for (const img of imgs) {
+              const w = img.naturalWidth  || parseInt(img.getAttribute('width')  || '0');
+              const h = img.naturalHeight || parseInt(img.getAttribute('height') || '0');
+              if ((w > 0 && w < 50) || (h > 0 && h < 50)) continue;
+
+              let src = img.dataset?.src || img.dataset?.lazySrc || img.dataset?.original || '';
+
+              if (!isUsableUrlHybrid(src)) {
+                const srcsetVal = (img.dataset?.srcset) || img.getAttribute('srcset') || '';
+                src = parseSrcsetHybrid(srcsetVal);
+              }
+
+              if (!isUsableUrlHybrid(src)) src = img.src || '';
+
+              if (isUsableUrlHybrid(src)) {
+                imageUrl = src.startsWith('//') ? 'https:' + src : src;
+                break;
               }
             }
-
-            if (!src || src.length < 30) {
-              src = img.src || '';
-              if (src.startsWith('data:')) src = '';
-            }
-
-            if (!src || src.length < 30) continue;
-            if (/swatch|placeholder|blank\.|1x1|spacer|pixel\./i.test(src)) continue;
-
-            imageUrl = src.startsWith('//') ? 'https:' + src : src;
-            break;
           }
 
           seenUrls.add(cleanUrl);
