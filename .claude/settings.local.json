@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node test-one-site.js)",
+      "Bash(node test-one-site.js \"Abercrombie\")",
+      "WebFetch(domain:www.abercrombie.com)",
+      "WebSearch",
+      "WebFetch(domain:www.riverisland.com)",
+      "WebFetch(domain:www.boohooman.com)",
+      "mcp__Kapture_Browser_Automation__list_tabs",
+      "mcp__Kapture_Browser_Automation__new_tab"
+    ]
+  }
+}
