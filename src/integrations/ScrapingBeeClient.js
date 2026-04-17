@@ -87,11 +87,13 @@ class ScrapingBeeClient {
           waitBrowser: 'networkidle2',
           premiumProxy: true,
           params: {
+            // Longer waits give Abercrombie's async image fetches time to resolve
             js_scenario: JSON.stringify({
               instructions: [
-                { scroll_y: 3000 }, { wait: 700 },
-                { scroll_y: 6000 }, { wait: 700 },
-                { scroll_y: 9000 }, { wait: 700 }
+                { scroll_y: 2000 }, { wait: 1500 },
+                { scroll_y: 4000 }, { wait: 1500 },
+                { scroll_y: 6000 }, { wait: 1500 },
+                { scroll_y: 8000 }, { wait: 1500 }
               ]
             })
           }
@@ -522,21 +524,25 @@ class ScrapingBeeClient {
 
       $('script:not([src])').each((i, el) => {
         const content = $(el).html() || '';
-        if (!content.includes('img.abercrombie.com') && !content.includes('_prod')) return;
+        // Match full CDN URL -OR- bare image key (KIC_xxx_prod1 without base URL)
+        if (!content.includes('img.abercrombie.com') &&
+            !content.includes('_prod1') && !content.includes('_prod2')) return;
 
-        const imgRe = /https?:\/\/img\.abercrombie\.com\/is\/image\/anf\/([\w_-]+)/gi;
+        // Regex matches both: full URL and bare key patterns
+        const imgRe = /(?:https?:\/\/img\.abercrombie\.com\/is\/image\/anf\/)?(KIC_[\w-]+_prod\d)/gi;
         let m;
         while ((m = imgRe.exec(content)) !== null) {
-          const imgUrl = ANF_CDN + m[1] + (m[1].endsWith('.jpg') ? '' : '.jpg');
+          const key = m[1];
+          const imgUrl = ANF_CDN + key + '.jpg';
           const pos = m.index;
-          const ctx = content.substring(Math.max(0, pos - 500), pos + 200);
+          const ctx = content.substring(Math.max(0, pos - 500), pos + 300);
 
-          // Match product ID (6+ digit number) near this image
+          // Match product ID (6+ digit number) near this image key
           const idMatch = ctx.match(/\/p\/[\w-]+-(\d{6,})/i) ||
-                          ctx.match(/["'](?:productId|itemId|id)["']\s*:\s*["'](\d{6,})["']/i);
+                          ctx.match(/["'](?:productId|itemId|id)["']\s*:\s*["']?(\d{6,})["']?/i);
           if (idMatch && !imgMap.has(idMatch[1])) imgMap.set(idMatch[1], imgUrl);
 
-          // Also match by slug
+          // Also match by URL slug
           const slugMatch = ctx.match(/\/p\/([\w-]+?)-\d{6,}/i);
           if (slugMatch && !imgMap.has(slugMatch[1].toLowerCase())) {
             imgMap.set(slugMatch[1].toLowerCase(), imgUrl);
