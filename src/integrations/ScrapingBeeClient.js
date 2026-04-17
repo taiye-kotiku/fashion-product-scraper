@@ -425,12 +425,55 @@ class ScrapingBeeClient {
         const normalizedName = name.toLowerCase().replace(/\s+/g, ' ').trim();
         if (seenNames.has(normalizedName)) return;
 
+        // Widen context: if no card matched, walk up to nearest product/card/tile/li
+        const $ctx = $card.length
+          ? $card
+          : $link.closest('[class*="product"], [class*="card"], [class*="tile"], li, article');
+        const $imgCtx = $ctx.length ? $ctx : $link.parent();
+
         let imageUrl = '';
-        const $ctx = $card.length ? $card : $link;
-        const $img = $ctx.find('img').first();
-        if ($img.length) imageUrl = $img.attr('src') || $img.attr('data-src') || '';
+
+        // 1. Check <picture><source srcset> first (Abercrombie uses these)
+        $imgCtx.find('picture source[srcset]').each((j, sourceEl) => {
+          if (imageUrl) return false;
+          const srcset = $(sourceEl).attr('srcset') || '';
+          const parts = srcset.split(',')
+            .map(p => p.trim().split(/\s+/)[0])
+            .filter(u => u && (u.startsWith('http') || u.startsWith('//')));
+          if (parts.length) imageUrl = parts[parts.length - 1];
+        });
+
+        // 2. Walk img tags with full lazy-load attribute coverage
+        if (!imageUrl) {
+          $imgCtx.find('img').each((j, imgEl) => {
+            if (imageUrl) return false;
+            const $img = $(imgEl);
+            const w = parseInt($img.attr('width')  || '0');
+            const h = parseInt($img.attr('height') || '0');
+            if ((w > 0 && w < 50) || (h > 0 && h < 50)) return;
+
+            const candidates = [
+              $img.attr('data-src'),
+              $img.attr('data-lazy-src'),
+              $img.attr('data-lazysrc'),
+              $img.attr('data-original'),
+              $img.attr('data-image'),
+              $img.attr('src')
+            ];
+
+            for (const c of candidates) {
+              if (c && c.length > 20 && !c.startsWith('data:') &&
+                  (c.startsWith('http') || c.startsWith('//') || c.startsWith('/')) &&
+                  !/placeholder|swatch|blank\.|1x1|spacer|pixel\./i.test(c)) {
+                imageUrl = c;
+                return false;
+              }
+            }
+          });
+        }
+
         if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
-        if (imageUrl.startsWith('data:') || imageUrl.length < 20) imageUrl = '';
+        if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) imageUrl = '';
 
         if (href.startsWith('/')) href = baseOrigin + href;
 
